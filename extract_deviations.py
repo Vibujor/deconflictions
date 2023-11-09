@@ -11,7 +11,7 @@ from pathlib import Path
 import datetime
 
 from typing import Any, Dict, cast  # noqa: F401
-from stats_devs_pack.functions_heuristic import predict_fp
+from functions_heuristic import predict_fp
 import os
 
 from traffic.core.mixins import DataFrameMixin
@@ -47,9 +47,7 @@ metadata_simple = Metadata(
 # SEPARATION
 
 print("avant chargement t2")
-t2 = Traffic.from_file(
-    "t2_0722_noonground2.parquet"
-)  # A CHANGER POUR LE NOUVEAU
+t2 = Traffic.from_file("t2_0722_noonground2.parquet")  # A CHANGER POUR LE NOUVEAU
 assert t2 is not None
 
 # SEPARATION
@@ -117,8 +115,7 @@ def traitement(info: Tuple[Traffic, str]) -> None:
                 if (
                     flight_trou is not None
                     and flight_trou.duration > pd.Timedelta("120s")
-                    and flight_trou.altitude_max - flight_trou.altitude_min
-                    < margin_fl
+                    and flight_trou.altitude_max - flight_trou.altitude_min < margin_fl
                     and flight_trou.start > flight.start
                     and flight_trou.stop < flight.stop
                 ):
@@ -132,9 +129,7 @@ def traitement(info: Tuple[Traffic, str]) -> None:
                         flight_trou.start + pd.Timedelta(minutes=forward_time),
                         flight.stop,
                     )
-                    flight_interest = flight.between(
-                        flight_trou.start, stop_voisins
-                    )
+                    flight_interest = flight.between(flight_trou.start, stop_voisins)
                     assert flight_interest is not None
                     # find potential off-limits portion(s) in terms of altitude
                     offlimits = flight_interest.query(
@@ -196,9 +191,7 @@ def traitement(info: Tuple[Traffic, str]) -> None:
                         )
 
                         # angle computation (max and 90% quantile)
-                        angle_flown = flight_trou.data.set_index("timestamp")[
-                            "track"
-                        ]
+                        angle_flown = flight_trou.data.set_index("timestamp")["track"]
                         angle_pred = pred.data.set_index("timestamp")["track"]
                         d = pd.DataFrame((angle_flown - angle_pred) % 360)
                         d.loc[d["track"] < -180, "track"] = d["track"] + 360
@@ -250,12 +243,9 @@ def traitement(info: Tuple[Traffic, str]) -> None:
                             # we use the same neighbor to compute predicted distance
                             df_dist_forward = pred.distance(voisins[idmin_f])
                             temp_dict["min_p_id"] = idmin_f
-                            temp_dict[
-                                "min_p_dist"
-                            ] = df_dist_forward.lateral.min()
+                            temp_dict["min_p_dist"] = df_dist_forward.lateral.min()
                             temp_dict["min_p_time"] = df_dist_forward.loc[
-                                df_dist_forward.lateral
-                                == df_dist_forward.lateral.min()
+                                df_dist_forward.lateral == df_dist_forward.lateral.min()
                             ].timestamp.iloc[0]
 
                             df_dist_fp = pred_fp.distance(voisins[idmin_f])
