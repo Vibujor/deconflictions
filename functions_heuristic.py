@@ -12,7 +12,7 @@ def predict_fp(
     fp: FlightPlan,
     start: str | pd.Timestamp,
     stop: str | pd.Timestamp,
-    minutes: str = 15,  # REPLACE WITH INT
+    minutes: int = 15,  # REPLACE WITH INT
     angle_precision: int = 2,
     min_distance: int = 150,
 ):
@@ -25,15 +25,9 @@ def predict_fp(
     assert section is not None
     gs = section.groundspeed_mean * 0.514444  # conversion to m/s
 
-    data_points["latitude"].append(
-        flight.before(trou.start).at_ratio(1).latitude
-    )
-    data_points["longitude"].append(
-        flight.before(trou.start).at_ratio(1).longitude
-    )
-    data_points["timestamp"].append(
-        flight.before(trou.start).at_ratio(1).timestamp
-    )
+    data_points["latitude"].append(flight.before(trou.start).at_ratio(1).latitude)
+    data_points["longitude"].append(flight.before(trou.start).at_ratio(1).longitude)
+    data_points["timestamp"].append(flight.before(trou.start).at_ratio(1).timestamp)
 
     navaids = fp.all_points
 
@@ -43,9 +37,7 @@ def predict_fp(
     ).final()
 
     start_nav_name = g.data.navaid.iloc[0]
-    start_nav = next(
-        (point for point in navaids if point.name == start_nav_name), None
-    )
+    start_nav = next((point for point in navaids if point.name == start_nav_name), None)
     start_index = navaids.index(start_nav)
     reste_navaids = navaids[start_index:]
     point_depart = _Point(
@@ -71,10 +63,7 @@ def predict_fp(
         # compute difference between trou.start and new_timestamp
         time_difference_seconds = (new_timestamp - trou.start).total_seconds()
         time_difference_minutes = time_difference_seconds / 60
-        if (
-            time_difference_minutes > minutes
-            and len(data_points["timestamp"]) > 1
-        ):
+        if time_difference_minutes > minutes and len(data_points["timestamp"]) > 1:
             break
 
     new_columns = {
@@ -84,6 +73,4 @@ def predict_fp(
         "altitude": flight.at(trou.start).altitude,
         "flight_id": flight.flight_id,
     }
-    return (
-        Flight(pd.DataFrame(new_columns)).resample("1s").first(minutes * 60 + 1)
-    )
+    return Flight(pd.DataFrame(new_columns)).resample("1s").first(minutes * 60 + 1)
