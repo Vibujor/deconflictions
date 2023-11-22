@@ -189,6 +189,19 @@ def extract_traffic_deviations(
     min_distance: int = 200,
     forward_time: int = 20,
 ) -> None | pd.DataFrame:
+    """
+    Examines all deviations in flight and returns selected ones in a dataframe.
+
+    :param flights: All flights to examine
+    :param metadata_file: File linking flight_id and flight plan (route)
+    :param context_traffic: Surrounding flights to take into consideration
+    :param margin_fl: Margin in ft to check altitude stability
+    :param angle_precision: Desired precision in alignment computation
+    :param min_distance: Distance from which we consider a navpoint for alignment
+    :param forward_time: Duration of trajectory prediction
+
+    :return: None or DataFrame containing selected deviations
+    """
     cumul_deviations = []
     metadata = pd.read_parquet(metadata_file)
 
@@ -213,7 +226,8 @@ def extract_traffic_deviations(
             print(f"TypeError in main for flight {flight.flight_id}")
         except AttributeError as e:
             print(f"AttributeError in main for flight {flight.flight_id}")
-
+    if not cumul_deviations:
+        return None
     all_deviations = pd.concat(cumul_deviations, ignore_index=True)
     return all_deviations
 
