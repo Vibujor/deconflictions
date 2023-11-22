@@ -12,6 +12,8 @@ import datetime
 from typing import Any, cast  # noqa: F401
 import multiprocessing as mp
 from typing import Tuple, List, Callable
+from functions_heuristic import predict_fp
+
 
 # extent = "LFBBBDX"
 # prefix_sector = "LFBB"
