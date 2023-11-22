@@ -6,45 +6,29 @@ from traffic.data import (  # noqa: F401
 )
 from traffic.core import Traffic, Flight, FlightPlan
 import pandas as pd
+
+# from intervals import IntervalCollection
 from pathlib import Path
 import datetime
 
-from typing import Any, cast  # noqa: F401
-import multiprocessing as mp
-from typing import Tuple, List, Callable
+from typing import Any, Dict, cast  # noqa: F401
 from functions_heuristic import predict_fp
 
+# import os
 
-# extent = "LFBBBDX"
-# prefix_sector = "LFBB"
-# file_sector = Path("../../sectors_LFBB/2022-07-BORD/2022-07-14_BORD")
-# margin_fl = 50  # margin for flight level
-# altitude_min = 20000
-# sector_openings = sectors_openings()
-# angle_precision = 2
-# forward_time = 20
-# min_distance = 200
-# nbworkers = 60
+from traffic.core.mixins import DataFrameMixin
 
+import multiprocessing as mp
+from typing import Tuple, List, Callable
 
-# class Metadata(DataFrameMixin):
-#     def __getitem__(self, key: str) -> None | FlightPlan:
-#         df = self.data.query(f'flight_id == "{key}"')
-#         if df.shape[0] == 0:
-#             return None
-#         return FlightPlan(df.iloc[0]["route"])
-
-
-# metadata = pd.read_parquet("A2207_old.parquet")
-
-# metadata_simple = Metadata(
-#     metadata.groupby("flight_id", as_index=False)
-#     .last()
-#     .eval("icao24 = icao24.str.lower()")
-# )
-
-# t2 = Traffic.from_file("test_format_data_1.parquet")
-# assert t2 is not None
+extent = "LFBBBDX"
+prefix_sector = "LFBB"
+margin_fl = 50  # margin for flight level
+altitude_min = 20000
+angle_precision = 2
+forward_time = 20
+min_distance = 200
+nbworkers = 60
 
 
 def dist_lat_min(f1: Flight, f2: Flight) -> Any:
@@ -60,29 +44,7 @@ def dist_lat_min(f1: Flight, f2: Flight) -> Any:
         return None
 
 
-# we exclude a flawed flight
-# problem = t2["AA39472649"]
-# assert problem is not None
-# t2 = t2 - problem
-# assert t2 is not None
-
-# nt2 = len(t2)
-# nbsubsets = nt2 // nbworkers
-
-# subsetst2 = [
-#     t2[nbsubsets * i : nbsubsets * (i + 1)]
-#     if i < nbworkers - 1
-#     else t2[nbsubsets * i :]
-#     for i in range(nbworkers)
-# ]
-
-# couples_datas = [
-#     (sub, f"test_extract_deviations/stats_para_{i}.parquet")
-#     for i, sub in enumerate(subsetst2)
-# ]
-
-
-def extract_deviations(
+def extract_flight_deviations(
     flight: Flight,
     flightplan: FlightPlan,
     context_traffic: Traffic,
@@ -93,6 +55,7 @@ def extract_deviations(
 ) -> None | pd.DataFrame:
     """
     Examines all deviations in flight and returns selected ones in a dataframe.
+
     :param flight: Flight of interest
     :param flightplan: Flight plan of flight
     :param context_traffic: Surrounding flights
@@ -100,6 +63,8 @@ def extract_deviations(
     :param angle_precision: Desired precision in alignment computation
     :param min_distance: Distance from which we consider a navpoint for alignment
     :param forward_time: Duration of trajectory prediction
+
+    :return: None or DataFrame containing selected deviations
     """
     list_dicts = []
     for hole in flight - flight.aligned_on_navpoint(
@@ -109,6 +74,16 @@ def extract_deviations(
         min_distance=min_distance,
     ):
         temp_dict = hole.summary(["flight_id", "start", "stop", "duration"])
+        temp_dict = {
+            **temp_dict,
+            **dict(
+                min_f_dist=None,
+                min_fp_dist=None,
+                min_fp_id=None,
+                min_fp_time=None,
+                neighbour_id=None,
+            ),
+        }
         if (
             hole is not None
             and hole.duration > pd.Timedelta("120s")
@@ -116,7 +91,7 @@ def extract_deviations(
             and hole.start > flight.start
             and hole.stop < flight.stop
         ):
-            flight = hole.resample("1s")
+            flight = flight.resample("1s")
             hole = hole.resample("1s")
 
             flmin = hole.altitude_min - margin_fl
@@ -152,12 +127,6 @@ def extract_deviations(
             pred_possible = flight.before(hole.start) is not None
 
             if neighbours is None and not pred_possible:
-                temp_dict = {
-                    **temp_dict,
-                    **dict(
-                        min_f_dist=None,
-                    ),
-                }
                 continue
 
             if pred_possible:
