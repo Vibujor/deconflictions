@@ -31,6 +31,14 @@ min_distance = 200
 nbworkers = 60
 
 
+class Metadata(DataFrameMixin):
+    def __getitem__(self, key: str) -> None | FlightPlan:
+        df = self.data.query(f'flight_id == "{key}"')
+        if df.shape[0] == 0:
+            return None
+        return FlightPlan(df.iloc[0]["route"])
+
+
 def dist_lat_min(f1: Flight, f2: Flight) -> Any:
     try:
         if f1 & f2 is None:  # no overlap
@@ -170,6 +178,44 @@ def extract_flight_deviations(
     # we clear the cases for which trajectories exist more than once
     deviations = deviations[deviations.min_f_dist != 0.0]
     return deviations
+
+
+def extract_traffic_deviations(
+    flights: Traffic,
+    metadata_file: Path,
+    context_traffic: Traffic,
+    margin_fl: int = 50,
+    angle_precision: int = 2,
+    min_distance: int = 200,
+    forward_time: int = 20,
+) -> None | pd.DataFrame:
+    cumul_deviations = []
+    metadata = pd.read_parquet(metadata_file)
+
+    metadata_simple = Metadata(
+        metadata.groupby("flight_id", as_index=False)
+        .last()
+        .eval("icao24 = icao24.str.lower()")
+    )
+
+    for flight in flights:
+        try:
+            df = extract_flight_deviations(
+                flight,
+                cast(FlightPlan, metadata_simple[cast(str, flight.flight_id)]),
+                context_traffic,
+            )
+            if df is not None:
+                cumul_deviations.append(df)
+        except AssertionError:
+            print(f"AssertionError in main for flight{flight.flight_id}")
+        except TypeError as e:
+            print(f"TypeError in main for flight {flight.flight_id}")
+        except AttributeError as e:
+            print(f"AttributeError in main for flight {flight.flight_id}")
+
+    all_deviations = pd.concat(cumul_deviations, ignore_index=True)
+    return all_deviations
 
 
 def do_parallel(
