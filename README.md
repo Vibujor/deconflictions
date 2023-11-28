@@ -6,8 +6,8 @@ This code corresponds to the work published in the 2023 OpenSky Symposium.
 
 ## Folder Structure
 
-The project contains three files:
+The project contains the following files:
 
-- format_data.py
-- extract_deviations.py
-- functions_heuristic.py
+- **format_data.py**: Preprocesses ADS-B flight data.
+- **extract_deviations.py**: Extracts deviations from data produced in format_data.py.
+- **functions_heuristic.py**: Provides a function that predicts a trajectory based on its associated flight plan.
