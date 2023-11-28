@@ -62,8 +62,8 @@ def predict_fp(
     start_nav_name = cast(Flight, g).data.navaid.iloc[0]
     start_nav = next((point for point in navaids if point.name == start_nav_name), None)
     start_index = navaids.index(cast(_Point, start_nav))
-    reste_navaids = navaids[start_index:]
-    point_depart = _Point(
+    rest_navaids = navaids[start_index:]
+    start_point = _Point(
         lat=cast(
             Position, cast(Flight, flight.before(hole.start)).at_ratio(1)
         ).latitude,
@@ -73,16 +73,17 @@ def predict_fp(
         name=start_nav_name,
     )
     new_timestamp = hole.start
-    for navaid in reste_navaids:
+    # iterate on navaids
+    for navaid in rest_navaids:
         dmin = distance(
-            point_depart.latitude,
-            point_depart.longitude,
+            start_point.latitude,
+            start_point.longitude,
             navaid.latitude,
             navaid.longitude,
         )
         t = int(dmin / gs)
         new_timestamp = new_timestamp + timedelta(seconds=t)
-        point_depart = navaid
+        start_point = navaid
         data_points["latitude"].append(navaid.latitude)
         data_points["longitude"].append(navaid.longitude)
         data_points["timestamp"].append(new_timestamp)
@@ -91,7 +92,7 @@ def predict_fp(
         time_difference_minutes = time_difference_seconds / 60
         if time_difference_minutes > minutes and len(data_points["timestamp"]) > 1:
             break
-
+    # create prediction as flight
     new_columns = {
         **data_points,
         "icao24": flight.icao24,
