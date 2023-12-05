@@ -76,7 +76,6 @@ def extract_flight_deviations(
     """
     list_dicts = []
     for hole in flight - flight.aligned_on_navpoint(
-        # metadata_simple[cast(str, flight.flight_id)],
         flightplan,
         angle_precision=angle_precision,
         min_distance=min_distance,
@@ -85,11 +84,10 @@ def extract_flight_deviations(
         temp_dict = {
             **temp_dict,
             **dict(
-                min_f_dist=None,
-                min_fp_dist=None,
-                min_fp_id=None,
-                min_fp_time=None,
-                neighbour_id=None,
+                min_f_dist=None,  # actual minimum separation
+                min_fp_dist=None,  # predicted minimum separation
+                min_fp_time=None,  # time at predicted minimum separation
+                neighbour_id=None,  # flight_id of closest neighbour
             ),
         }
         if (
@@ -105,25 +103,26 @@ def extract_flight_deviations(
             flmin = hole.altitude_min - margin_fl
             flmax = hole.altitude_max + margin_fl
 
-            stop_neighbours = min(
+            horizon = min(
                 hole.start + pd.Timedelta(minutes=forward_time),
                 flight.stop,
             )
-            flight_interest = flight.between(hole.start, stop_neighbours)
+            flight_interest = flight.between(hole.start, horizon)
             assert flight_interest is not None
 
+            # if the altitude changes significantly before horizon, we adjust horizon
             offlimits = flight_interest.query(f"altitude>{flmax} or altitude<{flmin}")
-            # if there is at least one off-limits portion, we cut
             if offlimits is not None:
                 istop = offlimits.data.index[0]
                 flight_interest.data = flight_interest.data.loc[:istop]
-                stop_neighbours = flight_interest.stop
+                horizon = flight_interest.stop
 
+            # we select relevant flight portions in context
             neighbours = (
                 cast(Traffic, context_traffic - flight)
                 .between(
                     start=hole.start,
-                    stop=stop_neighbours,
+                    stop=horizon,
                     strict=False,
                 )
                 .iterate_lazy()
@@ -138,7 +137,6 @@ def extract_flight_deviations(
                 continue
 
             if pred_possible:
-                # compute prediction
                 pred_fp = predict_fp(
                     flight,
                     flightplan,
@@ -149,13 +147,11 @@ def extract_flight_deviations(
                 )
 
             if neighbours is not None:
-                # distance to closest neighbor + flight_id + timestamp
                 (min_f, idmin_f) = min(
                     (dist_lat_min(flight_interest, f), f.flight_id) for f in neighbours
                 )
                 temp_dict["neighbour_id"] = idmin_f
                 temp_dict["min_f_dist"] = min_f
-                # temp_dict["min_f_id"] = idmin_f
                 df_dist = flight_interest.distance(neighbours[idmin_f])
                 temp_dict["min_f_time"] = df_dist.loc[
                     df_dist.lateral == df_dist.lateral.min()
@@ -163,7 +159,6 @@ def extract_flight_deviations(
 
                 if pred_possible:
                     df_dist_fp = pred_fp.distance(neighbours[idmin_f])
-                    temp_dict["min_fp_id"] = idmin_f
                     temp_dict["min_fp_dist"] = df_dist_fp.lateral.min()
                     temp_dict["min_fp_time"] = df_dist_fp.loc[
                         df_dist_fp.lateral == df_dist_fp.lateral.min()
@@ -230,17 +225,3 @@ def extract_traffic_deviations(
         return None
     all_deviations = pd.concat(cumul_deviations, ignore_index=True)
     return all_deviations
-
-
-def do_parallel(
-    # f: function,
-    f: Callable[[Tuple[Traffic | Any, str]], None],
-    datas: List[Tuple[Traffic | Any, str]],
-    nworkers: int = mp.cpu_count() // 2,
-) -> None:
-    with mp.Pool(nworkers) as pool:
-        # l = pool.map(f, datas, chunksize=1)
-        pool.map(f, datas, chunksize=1)
-
-
-# do_parallel(traitement, couples_datas, nbworkers)
