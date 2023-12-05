@@ -52,17 +52,6 @@ def plot_difference_scatter(
     quantile: float = 0.5,
     n_neighbors: int = 100,
 ) -> None:
-    """
-    Plots difference between actual and predicted minimum separation as a function of the predicted closest separation.
-
-    :param stats: DataFrame compiling all extracted deviations
-    :param figname: Name of the output file
-    :param threshold: Threshold for maximum separation to increase legibility
-    :param quantile: Quantile for regressor (0.5 for median)
-    :param n_neighbors: Number of neighbors in the regression
-
-    :return: None
-    """
     df = stats.query(f"min_f_dist < {threshold} and min_fp_dist < {threshold}")
     x = df.min_fp_dist.values
     y = df.difference.values
@@ -106,14 +95,6 @@ def plot_difference_scatter(
 def plot_layered_chart(
     stats: pd.DataFrame, figname: str = "plot_layered_chart"
 ) -> None:
-    """
-    Plots distribution of actual and predicted lateral separation.
-
-    :param stats: DataFrame compiling all extracted deviations
-    :param figname: Name of the output file
-
-    :return: None
-    """
     source = stats[["min_fp_dist", "min_f_dist"]]
     source = source.dropna()
     chart2 = (
@@ -144,57 +125,41 @@ def plot_compare_fp_traj(
     t2: pd.Timestamp,
     figname: str = "plot_compare_fp_traj",
 ) -> None:
-    """
-    Plots flight plan, predicted trajectory according to flight plan, usual trajectory and deviated trajectory.
-
-    :param f1: Aligned trajectory
-    :param f2: Deviated trajectory
-    :param fp: Associated flight plan
-    :param t1: Start time of deviation in f2
-    :param t2: Stop time of deviation in f2
-    :param figname: Name of the output file
-
-    :return: None
-    """
     fig, (ax1, ax2, ax3, ax4) = plt.subplots(
         1, 4, subplot_kw=dict(projection=Lambert93())
     )
     pred_fp = predict_fp(
-        f1,
+        f2,
         fp,
-        f1.start + timedelta(seconds=35),
-        f1.stop,
+        f2.start + timedelta(seconds=35),
+        f2.stop,
         minutes=50,
         min_distance=150,
     )
-    # AX 3 : flight plan + straight trajectory
+
+    # AX 1 : flight plan
     for i in fp.all_points[4:12]:
         i.plot(
-            ax3,
-            # color="#4c78a8",
+            ax1,
             color="#79706e",
             marker="x",
             s=20,
             text_kw=dict(
-                # color="#9ecae9",
                 color="#79706e",
                 ha="left",
                 size=12,
             ),
         )
-    f1.plot(ax3, color="#4c79a8")
-    ax3.spines["geo"].set_visible(False)
+    ax1.spines["geo"].set_visible(False)
 
     # AX 2 : flight plan + prediction
     for i in fp.all_points[4:12]:
         i.plot(
             ax2,
-            # color="#4c78a8",
             color="#79706e",
             marker="x",
             s=20,
             text_kw=dict(
-                # color="#9ecae9",
                 color="#79706e",
                 ha="left",
                 size=12,
@@ -203,33 +168,30 @@ def plot_compare_fp_traj(
     pred_fp.plot(ax2, color="#4c79a8")
     ax2.spines["geo"].set_visible(False)
 
-    # AX 1 : flight plan
+    # AX 3 : flight plan + straight trajectory
     for i in fp.all_points[4:12]:
         i.plot(
-            ax1,
-            # color="#4c78a8",
+            ax3,
             color="#79706e",
             marker="x",
             s=20,
             text_kw=dict(
-                # color="#9ecae9",
                 color="#79706e",
                 ha="left",
                 size=12,
             ),
         )
-    ax1.spines["geo"].set_visible(False)
+    f1.plot(ax3, color="#4c79a8")
+    ax3.spines["geo"].set_visible(False)
 
     # AX 4 : flight plan + deviated trajectory
     for i in fp.all_points[4:12]:
         i.plot(
             ax4,
-            # color="#4c78a8",
             color="#79706e",
             marker="x",
             s=20,
             text_kw=dict(
-                # color="#9ecae9",
                 color="#79706e",
                 ha="left",
                 size=12,
@@ -247,40 +209,3 @@ def plot_compare_fp_traj(
 # stats = stats[stats.min_f_dist != 0.0]
 # # plot_difference_scatter(stats)
 # plot_layered_chart(stats)
-
-
-# TEST PLOT_COMPARE
-# from traffic.core import Traffic
-
-# t = Traffic.from_file("./t2_0722_noonground2.parquet")
-# assert t is not None
-# f = t["AA39013366"]
-# f = t["AA39047319"]
-# dev = t["AA38880885"]
-# assert dev is not None
-# assert f is not None
-
-
-# class Metadata(DataFrameMixin):
-#     def __getitem__(self, key: str) -> None | FlightPlan:
-#         df = self.data.query(f'flight_id == "{key}"')
-#         if df.shape[0] == 0:
-#             return None
-#         return FlightPlan(df.iloc[0]["route"])
-
-
-# metadata = pd.read_parquet("A2207_old.parquet")
-
-# metadata_simple = Metadata(
-#     metadata.groupby("flight_id", as_index=False)
-#     .last()
-#     .eval("icao24 = icao24.str.lower()")
-# )
-# fp = metadata_simple[cast(str, f.flight_id)]
-# plot_compare_fp_traj(
-#     f,
-#     dev,
-#     cast(FlightPlan, fp),
-#     pd.Timestamp("2022-07-14 09:17:40+00:00"),
-#     pd.Timestamp("2022-07-14 09:26:05+00:00"),
-# )
