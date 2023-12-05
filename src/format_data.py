@@ -1,11 +1,6 @@
-from __future__ import annotations
 import argparse
 from pathlib import Path
-from traffic.data import (  # noqa: F401
-    aixm_airspaces,
-    aixm_navaids,
-    aixm_airways,
-)
+from traffic.data import aixm_airspaces, opensky
 from traffic.core import Traffic
 import pandas as pd
 
@@ -13,6 +8,7 @@ import pandas as pd
 def download_data(
     trajectory_folder: Path,
 ) -> None:
+    opensky.history("", "", bounds=aixm_airspaces["LFBBBDX"])
     ...
 
 

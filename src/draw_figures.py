@@ -209,3 +209,6 @@ def plot_compare_fp_traj(
 # stats = stats[stats.min_f_dist != 0.0]
 # # plot_difference_scatter(stats)
 # plot_layered_chart(stats)
+
+if __name__ == "__main__":
+    

@@ -1,12 +1,11 @@
 from datetime import timedelta
+from typing import Dict, List, Union, cast
+
+import pandas as pd
+from pitot.geodesy import distance
+from traffic.core import Flight, FlightPlan
 from traffic.core.flight import Position
 from traffic.core.flightplan import _Point
-from traffic.core.geodesy import distance  # distance in meters
-from traffic.core import Flight
-from traffic.core import FlightPlan
-import pandas as pd
-from traffic.data import aixm_navaids
-from typing import List, Union, Dict, cast
 
 
 def predict_fp(
@@ -75,7 +74,7 @@ def predict_fp(
     new_timestamp = hole.start
     # iterate on navaids
     for navaid in rest_navaids:
-        dmin = distance(
+        dmin = distance(  # in meters
             start_point.latitude,
             start_point.longitude,
             navaid.latitude,

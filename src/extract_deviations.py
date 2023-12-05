@@ -1,25 +1,14 @@
 from __future__ import annotations
-from traffic.data import (  # noqa: F401
-    aixm_airspaces,
-    aixm_navaids,
-    aixm_airways,
-)
-from traffic.core import Traffic, Flight, FlightPlan
-import pandas as pd
 
-# from intervals import IntervalCollection
-from pathlib import Path
 import datetime
+from pathlib import Path
+from typing import Any, cast
 
-from typing import Any, Dict, cast  # noqa: F401
-from functions_heuristic import predict_fp
-
-# import os
-
+import pandas as pd
+from traffic.core import Flight, FlightPlan, Traffic
 from traffic.core.mixins import DataFrameMixin
 
-import multiprocessing as mp
-from typing import Tuple, List, Callable
+from functions_heuristic import predict_fp
 
 extent = "LFBBBDX"
 prefix_sector = "LFBB"
@@ -45,7 +34,7 @@ def dist_lat_min(f1: Flight, f2: Flight) -> Any:
             print(f"no overlap with {f2.flight_id}")
             return None
         return cast(pd.DataFrame, f1.distance(f2))["lateral"].min()
-    except TypeError as e:
+    except TypeError:
         print(
             f"exception in dist_lat_min for flights {f1.flight_id} and {f2.flight_id}"
         )
