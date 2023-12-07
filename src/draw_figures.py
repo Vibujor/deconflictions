@@ -351,10 +351,6 @@ def plot_compare_preds(
 
 
 if __name__ == "__main__":
-    # python3 draw_figures.py
-    # --stats_path "./data/adsb_tracks_A2207.parquet"
-    # --metadata_path "./metadata_A2207.parquet"
-    # --t_path "./t2_0722_noonground2.parquet"
     parser = argparse.ArgumentParser(description="Creating figures.")
 
     parser.add_argument("--t_path", type=str, help="Path to trajectory data")
