@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+from typing import cast
 from traffic.data import aixm_airspaces, opensky
 from traffic.core import Traffic
 import pandas as pd
@@ -7,9 +8,21 @@ import pandas as pd
 
 def download_data(
     trajectory_folder: Path,
+    t1: pd.Timestamp | str,
+    t2: pd.Timestamp | str,
+    bounds: str | tuple[float, float, float, float] | None,
 ) -> None:
-    opensky.history("", "", bounds=aixm_airspaces["LFBBBDX"])
-    ...
+    """
+    Dwnloads historical ADS-B data from the OpenSky Network database.
+
+    :param trajectory_folder: Path to trajectory data file
+    :param metadata_file: Path to metadata file
+    :param output_file: Path to output file
+    :param extent: Extent
+    :param altitude_min: Minimum altitude
+    """
+    t = opensky.history(t1, t2, bounds=bounds)
+    cast(Traffic, t).to_parquet("trajectory_folder")
 
 
 def preprocess_data(
