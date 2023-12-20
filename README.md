@@ -7,7 +7,7 @@ This code corresponds to the work published in the 2023 OpenSky Symposium.
 ## Dependencies
 
 ```
-python >= 3.xx
+python >= 3.10
 traffic >= 2.8.2
 ```
 
