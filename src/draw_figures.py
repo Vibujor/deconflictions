@@ -1,6 +1,6 @@
 import argparse
 from datetime import timedelta
-from typing import Any, cast
+from typing import Any
 
 import altair as alt
 import matplotlib.pyplot as plt
@@ -198,7 +198,7 @@ def plot_compare_fp_traj(
             ),
         )
     f2.plot(ax4, color="#4c79a8")
-    cast(Flight, f2.between(t1, t2)).plot(ax4, color="#f58518")
+    f2.between(t1, t2).plot(ax4, color="#f58518")
     ax4.spines["geo"].set_visible(False)
     fig.savefig(figname, transparent=True)
 
@@ -214,16 +214,16 @@ def plot_conflict(
     figname: str = "fig/conflict.png",
 ) -> None:
     fig, ax = plt.subplots(subplot_kw=dict(projection=Lambert93()))
-    (a1,) = cast(
-        Flight, f1.between(t1 - pd.Timedelta("5T"), t2 + pd.Timedelta("5T"))
-    ).plot(ax, zorder=1)
-    (a2,) = cast(
-        Flight, f2.between(t1 - pd.Timedelta("5T"), t2 + pd.Timedelta("5T"))
-    ).plot(ax, color="#54a24b")
+    (a1,) = f1.between(t1 - pd.Timedelta("5T"), t2 + pd.Timedelta("5T")).plot(
+        ax, zorder=1
+    )
+    (a2,) = f2.between(t1 - pd.Timedelta("5T"), t2 + pd.Timedelta("5T")).plot(
+        ax, color="#54a24b"
+    )
 
-    cast(Flight, f1.between(t1, t2)).plot(ax, color="#f58518", zorder=2)
+    f1.between(t1, t2).plot(ax, color="#f58518", zorder=2)
 
-    cast(Flight, f1.at(t1)).plot(
+    f1.at(t1).plot(
         ax,
         color=a1.get_color(),
         text_kw=dict(
@@ -231,7 +231,7 @@ def plot_conflict(
         ),
         zorder=3,
     )
-    cast(Flight, f2.at(t1)).plot(
+    f2.at(t1).plot(
         ax,
         color=a2.get_color(),
         text_kw=dict(
@@ -239,25 +239,21 @@ def plot_conflict(
         ),
     )
 
-    cast(Position, f1.at(t1 + ratio * (t2 - t1))).plot(
+    f1.at(t1 + ratio * (t2 - t1)).plot(
         ax, color=a1.get_color(), text_kw=dict(s=None), zorder=2
     )
-    cast(Position, f2.at(t1 + ratio * (t2 - t1))).plot(
-        ax, color=a2.get_color(), text_kw=dict(s=None)
-    )
-    f1_fp = metadata_simple[cast(str, f1.flight_id)]
+    f2.at(t1 + ratio * (t2 - t1)).plot(ax, color=a2.get_color(), text_kw=dict(s=None))
+    f1_fp = metadata_simple[f1.flight_id]
 
     pred_fp = predict_fp(
         f1,
-        cast(FlightPlan, f1_fp),
+        f1_fp,
         t1,
         t2,
         minutes=(ratio * (t2 - t1)).seconds / 60,
     )
-    pred_fp.data["track"] = (
-        cast(Flight, f1.before(t1)).forward(ratio * (t2 - t1)).data.track.iloc[0]
-    )
-    cast(Position, pred_fp.at()).plot(ax, color="#bab0ac", text_kw=dict(s=None))
+    pred_fp.data["track"] = f1.before(t1).forward(ratio * (t2 - t1)).data.track.iloc[0]
+    pred_fp.at().plot(ax, color="#bab0ac", text_kw=dict(s=None))
     pred_fp.plot(ax, color="#bab0ac", ls="dashed")
 
     ax.spines["geo"].set_visible(False)
@@ -302,16 +298,12 @@ def plot_compare_preds(
             ),
         )
 
-    (a1,) = cast(
-        FlightPlan,
-        f1.between(t1 - pd.Timedelta("5T"), t2 + pd.Timedelta("20T")),
-    ).plot(ax, zorder=3)
-    (a2,) = cast(
-        FlightPlan,
-        f2.between(t1 - pd.Timedelta("5T"), t2 + pd.Timedelta("20T")),
-    ).plot(ax)
+    (a1,) = f1.between(t1 - pd.Timedelta("5T"), t2 + pd.Timedelta("20T")).plot(
+        ax, zorder=3
+    )
+    (a2,) = f2.between(t1 - pd.Timedelta("5T"), t2 + pd.Timedelta("20T")).plot(ax)
 
-    cast(Position, f1.at(t1)).plot(
+    f1.at(t1).plot(
         ax,
         color=a1.get_color(),
         text_kw=dict(
@@ -320,7 +312,7 @@ def plot_compare_preds(
         ),
         zorder=4,
     )
-    cast(Position, f2.at(t1)).plot(
+    f2.at(t1).plot(
         ax,
         color=a2.get_color(),
         text_kw=dict(
@@ -329,18 +321,16 @@ def plot_compare_preds(
         ),
     )
 
-    cast(Position, f1.at(t1 + ratio * (t2 - t1))).plot(
+    f1.at(t1 + ratio * (t2 - t1)).plot(
         ax, color=a1.get_color(), text_kw=dict(s=None), zorder=3
     )
-    cast(Position, f2.at(t1 + ratio * (t2 - t1))).plot(
-        ax, color=a2.get_color(), text_kw=dict(s=None)
-    )
+    f2.at(t1 + ratio * (t2 - t1)).plot(ax, color=a2.get_color(), text_kw=dict(s=None))
 
-    cast(Flight, f1.before(t1)).forward(minutes=20).plot(
+    f1.before(t1).forward(minutes=20).plot(
         ax, color="#bab0ac", ls="dashed"
     )  # straight-line pred
 
-    cast(Position, cast(Flight, f1.before(t1)).forward(ratio * (t2 - t1)).at()).plot(
+    f1.before(t1).forward(ratio * (t2 - t1)).at().plot(
         ax, color="#bab0ac", text_kw=dict(s=None)
     )
 
@@ -393,35 +383,29 @@ if __name__ == "__main__":
         .eval("icao24 = icao24.str.lower()")
     )
 
-    fp = metadata_simple[cast(str, f.flight_id)]
+    fp = metadata_simple[f.flight_id]
     plot_compare_fp_traj(
         f,
         dev,
-        cast(FlightPlan, fp),
+        fp,
         pd.Timestamp("2022-07-14 09:17:40+00:00"),
         pd.Timestamp("2022-07-14 09:26:05+00:00"),
     )
 
     # PLOT CONFLICT
     plot_conflict(
-        cast(Flight, t["AA38871389"]),
-        cast(Flight, t["AA38894800"]),
-        cast(
-            FlightPlan,
-            metadata_simple[cast(str, cast(Flight, t["AA38871389"]).flight_id)],
-        ),
+        t["AA38871389"],
+        t["AA38894800"],
+        metadata_simple[t["AA38871389"].flight_id],
         pd.Timestamp("2022-07-14 13:43:52+00:00"),
         pd.Timestamp("2022-07-14 13:53:43+00:00"),
         0.8,
         "fig/conflict1.png",
     )
     plot_conflict(
-        cast(Flight, t["AA38865857"]),
-        cast(Flight, t["AA38889279"]),
-        cast(
-            FlightPlan,
-            metadata_simple[cast(str, cast(Flight, t["AA38871389"]).flight_id)],
-        ),
+        t["AA38865857"],
+        t["AA38889279"],
+        metadata_simple[t["AA38871389"].flight_id],
         pd.Timestamp("2022-07-14 12:27:40+00:00"),
         pd.Timestamp("2022-07-14 12:37:54+00:00"),
         0.9,
@@ -439,7 +423,7 @@ if __name__ == "__main__":
     plot_compare_preds(
         first,
         second,
-        cast(FlightPlan, metadata_simple[cast(str, first.flight_id)]),
+        metadata_simple[first.flight_id],
         t1,
         t2,
         ratio=0.8,

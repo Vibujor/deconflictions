@@ -33,7 +33,7 @@ def dist_lat_min(f1: Flight, f2: Flight) -> Any:
         if f1 & f2 is None:  # no overlap
             print(f"no overlap with {f2.flight_id}")
             return None
-        return cast(pd.DataFrame, f1.distance(f2))["lateral"].min()
+        return f1.distance(f2)["lateral"].min()
     except TypeError:
         print(
             f"exception in dist_lat_min for flights {f1.flight_id} and {f2.flight_id}"
@@ -108,7 +108,7 @@ def extract_flight_deviations(
 
             # we select relevant flight portions in context
             neighbours = (
-                cast(Traffic, context_traffic - flight)
+                (context_traffic - flight)
                 .between(
                     start=hole.start,
                     stop=horizon,
@@ -199,7 +199,7 @@ def extract_traffic_deviations(
         try:
             df = extract_flight_deviations(
                 flight,
-                cast(FlightPlan, metadata_simple[cast(str, flight.flight_id)]),
+                metadata_simple[flight.flight_id],
                 context_traffic,
             )
             if df is not None:

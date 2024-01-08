@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Dict, List, Union, cast
+from typing import Dict, List, Union
 
 import pandas as pd
 from pitot.geodesy import distance
@@ -37,19 +37,13 @@ def predict_fp(
     assert flight is not None
     hole = flight.between(start, stop, strict=False)
     assert hole is not None
-    section = cast(Flight, flight.before(hole.start, strict=False)).last(minutes=20)
+    section = flight.before(hole.start, strict=False).last(minutes=20)
     assert section is not None
     gs = section.groundspeed_mean * 0.514444  # conversion to m/s
 
-    data_points["latitude"].append(
-        cast(Position, cast(Flight, flight.before(hole.start)).at_ratio(1)).latitude
-    )
-    data_points["longitude"].append(
-        cast(Position, cast(Flight, flight.before(hole.start)).at_ratio(1)).longitude
-    )
-    data_points["timestamp"].append(
-        cast(Position, cast(Flight, flight.before(hole.start)).at_ratio(1)).timestamp
-    )
+    data_points["latitude"].append(flight.before(hole.start).at_ratio(1).latitude)
+    data_points["longitude"].append(flight.before(hole.start).at_ratio(1).longitude)
+    data_points["timestamp"].append(flight.before(hole.start).at_ratio(1).timestamp)
 
     navaids = fp.all_points
 
@@ -58,17 +52,13 @@ def predict_fp(
         fp, angle_precision=angle_precision, min_distance=min_distance
     ).final()
 
-    start_nav_name = cast(Flight, g).data.navaid.iloc[0]
+    start_nav_name = g.data.navaid.iloc[0]
     start_nav = next((point for point in navaids if point.name == start_nav_name), None)
-    start_index = navaids.index(cast(_Point, start_nav))
+    start_index = navaids.index(start_nav)
     rest_navaids = navaids[start_index:]
     start_point = _Point(
-        lat=cast(
-            Position, cast(Flight, flight.before(hole.start)).at_ratio(1)
-        ).latitude,
-        lon=cast(
-            Position, cast(Flight, flight.before(hole.start)).at_ratio(1)
-        ).longitude,
+        lat=flight.before(hole.start).at_ratio(1).latitude,
+        lon=flight.before(hole.start).at_ratio(1).longitude,
         name=start_nav_name,
     )
     new_timestamp = hole.start
@@ -96,7 +86,7 @@ def predict_fp(
         **data_points,
         "icao24": flight.icao24,
         "callsign": flight.callsign,
-        "altitude": cast(Position, flight.at(hole.start)).altitude,
+        "altitude": flight.at(hole.start).altitude,
         "flight_id": flight.flight_id,
     }
     return Flight(pd.DataFrame(new_columns)).resample("1s").first(minutes * 60 + 1)
